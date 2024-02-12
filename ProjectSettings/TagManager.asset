@@ -6,6 +6,11 @@ TagManager:
   tags:
   - Obs
   - Crash
+  - ObsSide
+  - Road
+  - ObsSideRight
+  - ObsSideLeft
+  - RayCaster
   layers:
   - Default
   - TransparentFX

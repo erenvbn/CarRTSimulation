@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 31123569512227102}
   m_Layer: 0
   m_Name: Track_line_type_01_start_finish_15m_free_obs
-  m_TagString: Untagged
+  m_TagString: Road
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
