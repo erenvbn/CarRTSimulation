@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using NativeWebSocket;
-using OpenCover.Framework.Model;
 
 [Serializable]
 public class DistanceManagerData
