@@ -17,6 +17,10 @@ public class UIController : MonoBehaviour
     public UnityEngine.UI.Button stopButton;
     public UnityEngine.UI.Button playButton;
     public UnityEngine.UI.Button restartButton;
+    public TMP_InputField socketUrlInput;
+    public UnityEngine.UI.Toggle togglePictureStream;
+    public UnityEngine.UI.Toggle toggleDistanceDataStream;
+
 
     // Start is called before the first frame update
     void Start()
@@ -69,6 +73,10 @@ public class UIController : MonoBehaviour
     public void onPlayButtonClick()
     {
         Time.timeScale = 1;
+        socketUrlInput.gameObject.SetActive(false);
+        togglePictureStream.gameObject.SetActive(false);
+        //getting the game object that is related with that component (toggleDistanceDataStream)
+        toggleDistanceDataStream.gameObject.SetActive(false);
         connectionHelperCar.StartWebSocket();
     }
 
@@ -82,5 +90,25 @@ public class UIController : MonoBehaviour
     public void onStopButtonClick()
     {
         Time.timeScale = 0;
+    }
+
+    public void SetWebSocketUrl()
+    {
+        if (connectionHelperCar != null && socketUrlInput != null)
+        {
+            connectionHelperCar.wsUrl = socketUrlInput.text;
+        }
+    }
+
+    public void TogglePictureStream(bool toggle)
+    {
+        connectionHelperCar.sendPictureStream = toggle;
+        Debug.Log(toggle);
+    }
+
+    public void ToggleDistanceDataStream(bool toggle)
+    {
+        connectionHelperCar.sendDistanceData = toggle;
+        Debug.Log(toggle);
     }
 }

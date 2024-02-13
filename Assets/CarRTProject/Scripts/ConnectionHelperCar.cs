@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using NativeWebSocket;
+using OpenCover.Framework.Model;
 
 [Serializable]
 public class DistanceManagerData
@@ -18,6 +19,9 @@ public class DistanceManagerData
 [Serializable]
 public class ConnectionHelperCar : MonoBehaviour
 {
+    public bool sendPictureStream;
+    public bool sendDistanceData;
+
     [Serializable]
     public class ServerMessage
     {
@@ -48,7 +52,16 @@ public class ConnectionHelperCar : MonoBehaviour
     public DistanceManager distanceManager;
 
     [SerializeField]
-    string url = "ws://localhost:5005";
+    private string _wsUrl = "ws://localhost:5005";
+    public string wsUrl
+    {
+        get { return _wsUrl; }
+        set
+        {
+            _wsUrl = value;
+            Debug.Log(_wsUrl);
+        }
+    }
 
     private WebSocket websocket;
 
@@ -67,6 +80,8 @@ public class ConnectionHelperCar : MonoBehaviour
 
         // Assign the existing distanceManager field by reaching DistanceManager in the car
         distanceManager = GetComponent<DistanceManager>();
+        sendPictureStream = true;
+        sendDistanceData = true;
         StartWebSocket();
 
         InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
@@ -85,7 +100,7 @@ public class ConnectionHelperCar : MonoBehaviour
         if (websocket == null || websocket.State != WebSocketState.Open)
         {
             // Initialize the WebSocket connection
-            websocket = new WebSocket(url);
+            websocket = new WebSocket(wsUrl);
 
             websocket.OnOpen += () =>
             {
@@ -127,17 +142,24 @@ public class ConnectionHelperCar : MonoBehaviour
 
     private void SetCarDistanceToObs()
     {
-        carData.distanceManagerData = new DistanceManagerData
+        if (sendDistanceData)
         {
-            leftHitDistance = distanceManager.leftHitDistance,
-            rightHitDistance = distanceManager.rightHitDistance,
-            forwardHitDistance = distanceManager.forwardHitDistance,
-            backwardHitDistance = distanceManager.backwardHitDistance,
-            forwardLeftHitDistance = distanceManager.forwardLeftHitDistance,
-            forwardRightHitDistance = distanceManager.forwardRightHitDistance,
-            backwardLeftHitDistance = distanceManager.backwardLeftHitDistance,
-            backwardRightHitDistance = distanceManager.backwardRightHitDistance
-        };
+            carData.distanceManagerData = new DistanceManagerData
+            {
+                leftHitDistance = distanceManager.leftHitDistance,
+                rightHitDistance = distanceManager.rightHitDistance,
+                forwardHitDistance = distanceManager.forwardHitDistance,
+                backwardHitDistance = distanceManager.backwardHitDistance,
+                forwardLeftHitDistance = distanceManager.forwardLeftHitDistance,
+                forwardRightHitDistance = distanceManager.forwardRightHitDistance,
+                backwardLeftHitDistance = distanceManager.backwardLeftHitDistance,
+                backwardRightHitDistance = distanceManager.backwardRightHitDistance
+            };
+        }
+        else
+        {
+            carData.distanceManagerData = null;
+        }
     }
 
     async void SendWebSocketMessage()
@@ -166,15 +188,18 @@ public class ConnectionHelperCar : MonoBehaviour
             carData.timeStamp = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
             // Debug.Log("Sending message: " + carData.carLocation.x + ", " + carData.carLocation.y + ", " + carData.carLocation.z + ", " + carData.isCrashed + ", " + carData.timeStamp);
             // Serialize the JSON object to a string
-            byte[] screenshotBytes = screenshotController.CaptureScreenshot();
 
-            if (screenshotBytes != null)
+            byte[] screenshotBytes = null;
+
+            if (sendPictureStream)
             {
-                carData.screenshotBase64 = System.Convert.ToBase64String(screenshotBytes);
-            }
-            else
-            {
-                Debug.LogError("Failed to capture screenshot.");
+                screenshotBytes = screenshotController.CaptureScreenshot();
+                if (screenshotBytes != null)
+                    carData.screenshotBase64 = Convert.ToBase64String(screenshotBytes);
+                else
+                {
+                    Debug.LogError("Failed to capture screenshot.");
+                }
             }
 
             var jsonString = JsonUtility.ToJson(carData);
@@ -191,6 +216,7 @@ public class ConnectionHelperCar : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         Time.timeScale = 1f;
     }
+
 
     private async void OnApplicationQuit()
     {
