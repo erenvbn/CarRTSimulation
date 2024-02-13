@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 
-[SerializeField]
+[Serializable]
 public class ScreenshotController : MonoBehaviour
 {
     // Reference to the MainCamera object
@@ -30,7 +31,6 @@ public class ScreenshotController : MonoBehaviour
         // Check if the screenshot was captured successfully
         if (screenshotBytes != null)
         {
-            // Process the screenshot bytes (e.g., send them over the network, etc.)
             // Debug.Log("Screenshot captured. Byte array length: " + screenshotBytes.Length);
             string base64Screenshot = System.Convert.ToBase64String(screenshotBytes);
             // Debug.Log("Screenshot captured. Byte array length: " + base64Screenshot);

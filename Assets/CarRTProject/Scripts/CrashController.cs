@@ -1,22 +1,22 @@
+using System;
 using UnityEngine;
 
+[Serializable]
 public class CrashController : MonoBehaviour
 {
     private bool isCrashed = false;
     public bool Crashed => isCrashed;
 
-    public void OnCollisionEnter(Collision other)
+    //Create an empty instance for uiController
+    private UIController uiController;
+
+    void Start()
     {
-        // Check if the collided GameObject has the tag "ObsSide"
-        if (other.gameObject.CompareTag("ObsSideLeft") || other.gameObject.CompareTag("ObsSideRight"))
+        // Getting the canvas element from the editor to fill the uiController
+        uiController = FindObjectOfType<UIController>();
+        if (uiController == null)
         {
-            isCrashed = true;
-            Debug.Log($"Crashed with object tagged as: {other.gameObject.tag} with {other.gameObject.name}");
-        }
-        else
-        {
-            isCrashed = false;
-            Debug.Log("Not crashed yet");
+            Debug.LogError("UIController not found.");
         }
     }
 
@@ -25,6 +25,22 @@ public class CrashController : MonoBehaviour
         if (!isCrashed)
         {
             // Debug.Log("Not crashed");
+        }
+    }
+
+    public void OnCollisionEnter(Collision other)
+    {
+        // Check if the collided GameObject has the tag "ObsSide"
+        if (other.gameObject.CompareTag("ObsSide"))
+        {
+            isCrashed = true;
+            uiController?.ToggleCrashText(true);
+            Debug.Log($"Crashed with object tagged as: {other.gameObject.tag} with {other.gameObject.name}");
+        }
+        else
+        {
+            isCrashed = false;
+            // Debug.Log("Not crashed yet");
         }
     }
 }

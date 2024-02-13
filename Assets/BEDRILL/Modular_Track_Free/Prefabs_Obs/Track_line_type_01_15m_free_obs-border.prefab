@@ -123,7 +123,7 @@ PrefabInstance:
     - target: {fileID: 8483781631078631208, guid: 87e0acbd6ddf7814097e377d5a5c716d,
         type: 3}
       propertyPath: m_TagString
-      value: ObsSideLeft
+      value: ObsSide
       objectReference: {fileID: 0}
     - target: {fileID: 9148960239488163218, guid: 87e0acbd6ddf7814097e377d5a5c716d,
         type: 3}
@@ -202,7 +202,7 @@ PrefabInstance:
     - target: {fileID: 8483781631078631208, guid: 87e0acbd6ddf7814097e377d5a5c716d,
         type: 3}
       propertyPath: m_TagString
-      value: ObsSideRight
+      value: ObsSide
       objectReference: {fileID: 0}
     - target: {fileID: 9148960239488163218, guid: 87e0acbd6ddf7814097e377d5a5c716d,
         type: 3}

@@ -2,6 +2,20 @@ using System;
 using UnityEngine;
 using NativeWebSocket;
 
+[Serializable]
+public class DistanceManagerData
+{
+    public float leftHitDistance;
+    public float rightHitDistance;
+    public float forwardHitDistance;
+    public float backwardHitDistance;
+    public float forwardLeftHitDistance;
+    public float forwardRightHitDistance;
+    public float backwardLeftHitDistance;
+    public float backwardRightHitDistance;
+}
+
+[Serializable]
 public class ConnectionHelperCar : MonoBehaviour
 {
     [Serializable]
@@ -18,7 +32,7 @@ public class ConnectionHelperCar : MonoBehaviour
         public bool isCrashed;
         public long timeStamp;
         public string screenshotBase64;
-
+        public DistanceManagerData distanceManagerData;
     }
 
     [Serializable]
@@ -28,15 +42,15 @@ public class ConnectionHelperCar : MonoBehaviour
         public float y;
         public float z;
     }
-
     private CarData carData = new CarData();
     private CarLocation carLocation = new CarLocation();
+    public ScreenshotController screenshotController;
+    public DistanceManager distanceManager;
 
     [SerializeField]
     string url = "ws://localhost:5005";
 
     private WebSocket websocket;
-    public ScreenshotController screenshotController;
 
     async void Start()
     {
@@ -50,28 +64,10 @@ public class ConnectionHelperCar : MonoBehaviour
         {
             Debug.LogError("MainCamera object not found in the scene.");
         }
-        websocket = new WebSocket(url);
 
-        websocket.OnOpen += () =>
-        {
-            Debug.Log("Connection open!");
-        };
-
-        websocket.OnError += (e) =>
-        {
-            Debug.Log("Error! " + e);
-        };
-
-        websocket.OnMessage += (bytes) =>
-        {
-            var message = System.Text.Encoding.UTF8.GetString(bytes);
-            var serverData = JsonUtility.FromJson<ServerMessage>(message);
-            if (serverData != null)
-            {
-                FindObjectOfType<CarController>().TargetSpeed = serverData.speed;
-                FindObjectOfType<CarController>().TargetRotation = serverData.rotation;
-            }
-        };
+        // Assign the existing distanceManager field by reaching DistanceManager in the car
+        distanceManager = GetComponent<DistanceManager>();
+        StartWebSocket();
 
         InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
         await websocket.Connect();
@@ -84,6 +80,43 @@ public class ConnectionHelperCar : MonoBehaviour
 #endif
     }
 
+    public async void StartWebSocket()
+    {
+        if (websocket == null || websocket.State != WebSocketState.Open)
+        {
+            // Initialize the WebSocket connection
+            websocket = new WebSocket(url);
+
+            websocket.OnOpen += () =>
+            {
+                Debug.Log("Connection open!");
+            };
+
+            websocket.OnError += (e) =>
+            {
+                Debug.Log("Error! " + e);
+            };
+
+            websocket.OnMessage += (bytes) =>
+            {
+                var message = System.Text.Encoding.UTF8.GetString(bytes);
+                var serverData = JsonUtility.FromJson<ServerMessage>(message);
+                if (serverData != null)
+                {
+                    FindObjectOfType<CarController>().TargetSpeed = serverData.speed;
+                    FindObjectOfType<CarController>().TargetRotation = serverData.rotation;
+                }
+            };
+
+            // Connect to the WebSocket server
+            await websocket.Connect();
+        }
+        else
+        {
+            Debug.Log("Websocket connection was not found");
+        }
+    }
+
     private void SetCarLocation()
     {
         carLocation.x = transform.position.x;
@@ -92,10 +125,26 @@ public class ConnectionHelperCar : MonoBehaviour
         carData.carLocation = carLocation;
     }
 
+    private void SetCarDistanceToObs()
+    {
+        carData.distanceManagerData = new DistanceManagerData
+        {
+            leftHitDistance = distanceManager.leftHitDistance,
+            rightHitDistance = distanceManager.rightHitDistance,
+            forwardHitDistance = distanceManager.forwardHitDistance,
+            backwardHitDistance = distanceManager.backwardHitDistance,
+            forwardLeftHitDistance = distanceManager.forwardLeftHitDistance,
+            forwardRightHitDistance = distanceManager.forwardRightHitDistance,
+            backwardLeftHitDistance = distanceManager.backwardLeftHitDistance,
+            backwardRightHitDistance = distanceManager.backwardRightHitDistance
+        };
+    }
+
     async void SendWebSocketMessage()
     {
         if (websocket.State == WebSocketState.Open)
         {
+            SetCarDistanceToObs();
             // Update car location
             SetCarLocation();
             // Set crash status
@@ -104,7 +153,7 @@ public class ConnectionHelperCar : MonoBehaviour
             if (GetComponent<CrashController>().Crashed)
             {
                 Debug.Log("Car crashed");
-                Time.timeScale = 0;
+                // Time.timeScale = 0;
                 // RestartCar();
             }
             else
@@ -129,7 +178,7 @@ public class ConnectionHelperCar : MonoBehaviour
             }
 
             var jsonString = JsonUtility.ToJson(carData);
-            // Debug.Log("Sending message: " + jsonString);
+            Debug.Log("Sending message: " + jsonString);
 
             // Send the stringified JSON to the server
             await websocket.SendText(jsonString);
@@ -139,7 +188,7 @@ public class ConnectionHelperCar : MonoBehaviour
     private void RestartCar()
     {
         transform.position = Vector3.zero;
-        // transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         Time.timeScale = 1f;
     }
 
