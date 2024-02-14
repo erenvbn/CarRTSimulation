@@ -11,7 +11,7 @@ function getRandomNumber(min, max) {
 // Function to send serialized fields data as JSON
 function sendSerializedFieldsData(ws) {
     const speed = getRandomNumber(2, 6); // Replace 100 with your maximum speed value
-    const rotation = getRandomNumber(45, 45); // Replace 360 with your maximum rotation value
+    const rotation = getRandomNumber(-20, 20); // Replace 360 with your maximum rotation value
     const data = JSON.stringify({ speed, rotation });
     ws.send(data);
 }

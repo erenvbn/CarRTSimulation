@@ -1,6 +1,10 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI; // Add this line to access UI components
 using NativeWebSocket;
+
+
 
 [Serializable]
 public class DistanceManagerData
@@ -18,8 +22,10 @@ public class DistanceManagerData
 [Serializable]
 public class ConnectionHelperCar : MonoBehaviour
 {
+    public Text connectionStatusText;
     public bool sendPictureStream;
     public bool sendDistanceData;
+    public float dataSendFrequencyInSeconds = 2.0f;
 
     [Serializable]
     public class ServerMessage
@@ -36,6 +42,8 @@ public class ConnectionHelperCar : MonoBehaviour
         public long timeStamp;
         public string screenshotBase64;
         public DistanceManagerData distanceManagerData;
+        public float speed;
+        public float rotation;
     }
 
     [Serializable]
@@ -79,11 +87,9 @@ public class ConnectionHelperCar : MonoBehaviour
 
         // Assign the existing distanceManager field by reaching DistanceManager in the car
         distanceManager = GetComponent<DistanceManager>();
-        sendPictureStream = true;
+        sendPictureStream = false;
         sendDistanceData = true;
         StartWebSocket();
-
-        InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
         await websocket.Connect();
     }
 
@@ -93,6 +99,8 @@ public class ConnectionHelperCar : MonoBehaviour
         websocket.DispatchMessageQueue();
 #endif
     }
+
+
 
     public async void StartWebSocket()
     {
@@ -117,13 +125,14 @@ public class ConnectionHelperCar : MonoBehaviour
                 var serverData = JsonUtility.FromJson<ServerMessage>(message);
                 if (serverData != null)
                 {
-                    FindObjectOfType<CarController>().TargetSpeed = serverData.speed;
-                    FindObjectOfType<CarController>().TargetRotation = serverData.rotation;
+                    FindObjectOfType<SimpleCarController>().TargetSpeed = serverData.speed;
+                    FindObjectOfType<SimpleCarController>().TargetRotation = serverData.rotation;
                 }
             };
 
             // Connect to the WebSocket server
             await websocket.Connect();
+            StartCoroutine(SendDataCoroutine());
         }
         else
         {
@@ -160,10 +169,19 @@ public class ConnectionHelperCar : MonoBehaviour
             carData.distanceManagerData = null;
         }
     }
-
-    async void SendWebSocketMessage()
+    private IEnumerator SendDataCoroutine()
     {
-        if (websocket.State == WebSocketState.Open)
+        while (true)
+        {
+            SendWebSocketMessage();
+            Debug.Log(dataSendFrequencyInSeconds);
+            yield return new WaitForSeconds(dataSendFrequencyInSeconds);
+        }
+    }
+
+    public async void SendWebSocketMessage()
+    {
+        if (websocket != null && websocket.State == WebSocketState.Open)
         {
             SetCarDistanceToObs();
             // Update car location
@@ -171,22 +189,11 @@ public class ConnectionHelperCar : MonoBehaviour
             // Set crash status
             carData.isCrashed = GetComponent<CrashController>().Crashed;
 
-            if (GetComponent<CrashController>().Crashed)
-            {
-                Debug.Log("Car crashed");
-                // Time.timeScale = 0;
-                // RestartCar();
-            }
-            else
-            {
-                Debug.Log("Car not crashed");
-            }
-
+            carData.speed = FindObjectOfType<SimpleCarController>().CurrentSpeed;
+            carData.rotation = FindObjectOfType<SimpleCarController>().CurrentRotation;
 
             // Unix timestamp in milliseconds
             carData.timeStamp = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-            // Debug.Log("Sending message: " + carData.carLocation.x + ", " + carData.carLocation.y + ", " + carData.carLocation.z + ", " + carData.isCrashed + ", " + carData.timeStamp);
-            // Serialize the JSON object to a string
 
             byte[] screenshotBytes = null;
 
@@ -215,7 +222,6 @@ public class ConnectionHelperCar : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         Time.timeScale = 1f;
     }
-
 
     private async void OnApplicationQuit()
     {
