@@ -152,6 +152,7 @@ public class ConnectionHelperCar : MonoBehaviour
             Debug.Log("Websocket connection was not found");
             uiController.HideLoadingIcon();
             uiController.UpdateConnectionErrorMessage("Websocket connection was not found");
+            uiController.txtConnectionError.gameObject.SetActive(false);
         }
     }
 
