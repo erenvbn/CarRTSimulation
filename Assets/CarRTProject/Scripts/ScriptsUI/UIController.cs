@@ -5,21 +5,35 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
 
 public class UIController : MonoBehaviour
 {
     //add from the editor, the gameobject with the connectionhelpercar component
     public ConnectionHelperCar connectionHelperCar;
-
-    //Create a public field for txtCrash object
-
     public TextMeshProUGUI txtCrash;
+    public TextMeshProUGUI consoleIncomingText;
+    public TextMeshProUGUI consoleOutgoingText;
+    public TextMeshProUGUI txtConnectionError;
     public UnityEngine.UI.Button stopButton;
     public UnityEngine.UI.Button playButton;
     public UnityEngine.UI.Button restartButton;
     public TMP_InputField socketUrlInput;
+    public TMP_InputField dataSenderFrequencyInput;
     public UnityEngine.UI.Toggle togglePictureStream;
     public UnityEngine.UI.Toggle toggleDistanceDataStream;
+    public GameObject loadingIcon;
+
+    public void ShowLoadingIcon()
+    {
+        loadingIcon.SetActive(true);
+    }
+
+    public void HideLoadingIcon()
+    {
+        loadingIcon.SetActive(false);
+    }
+
 
 
     // Start is called before the first frame update
@@ -74,6 +88,7 @@ public class UIController : MonoBehaviour
     {
         Time.timeScale = 1;
         socketUrlInput.gameObject.SetActive(false);
+        dataSenderFrequencyInput.gameObject.SetActive(false);
         togglePictureStream.gameObject.SetActive(false);
         //getting the game object that is related with that component (toggleDistanceDataStream)
         toggleDistanceDataStream.gameObject.SetActive(false);
@@ -111,4 +126,33 @@ public class UIController : MonoBehaviour
         connectionHelperCar.sendDistanceData = toggle;
         Debug.Log(toggle);
     }
+
+    public void SetDataSendFrequency()
+    {
+        string inputText = dataSenderFrequencyInput.text;
+        if (float.TryParse(inputText, out float frequency))
+        {
+            connectionHelperCar.dataSendFrequencyInSeconds = frequency;
+        }
+        else
+        {
+            Debug.LogError("Failed to parse input text as a float.");
+        }
+    }
+
+    public void UpdateIncomingMessage(string message)
+    {
+        consoleIncomingText.text = message;
+    }
+    public void UpdateOutgoingMessage(string message)
+    {
+        consoleOutgoingText.text = message;
+    }
+
+    public void UpdateConnectionErrorMessage(string message)
+    {
+        txtConnectionError.gameObject.SetActive(true);
+        txtConnectionError.text = message;
+    }
+
 }
