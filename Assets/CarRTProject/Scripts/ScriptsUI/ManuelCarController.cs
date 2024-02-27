@@ -4,7 +4,7 @@ public class ManuelCarController : MonoBehaviour
 {
     public float maxSpeed = 10.0f; // Maximum speed
     public float acceleration = 4.0f; // Acceleration rate
-    public float deceleration = 0.1f; // Deceleration rate
+    public float deceleration = 4f; // Deceleration rate
     public float rotationSpeed = 100.0f;
 
     private float currentSpeed = 0.0f; // Current speed

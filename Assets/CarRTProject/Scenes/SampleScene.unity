@@ -884,8 +884,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSpeed: 60
-  acceleration: 3
-  deceleration: 0.1
+  acceleration: 2
+  deceleration: 25
   rotationSpeed: 70
 --- !u!114 &58195468
 MonoBehaviour:
