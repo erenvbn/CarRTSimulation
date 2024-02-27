@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using NativeWebSocket;
 
 [Serializable]
@@ -34,6 +35,7 @@ public class ConnectionHelperCar : MonoBehaviour
     {
         public float speed;
         public float rotation;
+        public bool resetRequested;
     }
 
     [Serializable]
@@ -47,6 +49,7 @@ public class ConnectionHelperCar : MonoBehaviour
         // public float targetSpeed;
         public float currentSpeed;
         public float rotation;
+        public bool resetRequested;
     }
 
     [Serializable]
@@ -70,7 +73,7 @@ public class ConnectionHelperCar : MonoBehaviour
         set
         {
             _wsUrl = value;
-            Debug.Log(_wsUrl);
+            // Debug.Log(_wsUrl);
         }
     }
 
@@ -101,7 +104,7 @@ public class ConnectionHelperCar : MonoBehaviour
         }
         else
         {
-            Debug.Log("ManuelCarController found!");
+            // Debug.Log("ManuelCarController found!");
         }
 
         simpleCarController = FindObjectOfType<SimpleCarController>();
@@ -111,7 +114,7 @@ public class ConnectionHelperCar : MonoBehaviour
         }
         else
         {
-            Debug.Log("SimpleCarController found!");
+            // Debug.Log("SimpleCarController found!");
         }
 
         // Assign the existing distanceManager field by reaching DistanceManager in the car
@@ -119,7 +122,7 @@ public class ConnectionHelperCar : MonoBehaviour
         manuelCarControllerToggle = false;
         sendPictureStream = false;
         sendDistanceData = true;
-        Debug.Log(manuelCarControllerToggle);
+        // Debug.Log(manuelCarControllerToggle);
         StartWebSocket();
         await websocket.Connect();
     }
@@ -140,7 +143,7 @@ public class ConnectionHelperCar : MonoBehaviour
 
             manuelCarController.enabled = true;
             simpleCarController.enabled = false;
-            Debug.Log("ManuelCarController enabled");
+            // Debug.Log("ManuelCarController enabled");
         }
         else
         {
@@ -149,7 +152,7 @@ public class ConnectionHelperCar : MonoBehaviour
 
             manuelCarController.enabled = false;
             simpleCarController.enabled = true;
-            Debug.Log("SimpleCarController enabled");
+            // Debug.Log("SimpleCarController enabled");
         }
     }
 
@@ -174,28 +177,33 @@ public class ConnectionHelperCar : MonoBehaviour
                 uiController.UpdateConnectionErrorMessage("Error! " + e);
             };
 
-            if (!manuelCarControllerToggle)
+            websocket.OnMessage += (bytes) =>
             {
-                websocket.OnMessage += (bytes) =>
+                var message = System.Text.Encoding.UTF8.GetString(bytes);
+                var serverData = JsonUtility.FromJson<ServerMessage>(message);
+                Debug.Log("Message received from the server: " + serverData.resetRequested);
+                carData.resetRequested = serverData.resetRequested;
+
+                if (serverData != null && !carData.resetRequested)
                 {
-
-                    var message = System.Text.Encoding.UTF8.GetString(bytes);
-                    var serverData = JsonUtility.FromJson<ServerMessage>(message);
-
-                    if (serverData != null)
+                    if (!manuelCarControllerToggle)
                     {
                         simpleCarController.TargetSpeed = serverData.speed;
                         simpleCarController.TargetRotation = serverData.rotation;
                     }
+                }
+                else
+                {
+                    RestartScene();
+                    // Time.timeScale = 1;
+                }
 
-                    // Format the JSON message with indentation for better readability
-                    var formattedMessage = JsonUtility.ToJson(serverData, true);
+                // Format the JSON message with indentation for better readability
+                var formattedMessage = JsonUtility.ToJson(serverData, true);
 
-                    // Update the UI with the formatted message
-                    uiController.UpdateIncomingMessage(formattedMessage);
-
-                };
-            }
+                // Update the UI with the formatted message
+                uiController.UpdateIncomingMessage(formattedMessage);
+            };
 
 
             // Connect to the WebSocket server
@@ -267,14 +275,12 @@ public class ConnectionHelperCar : MonoBehaviour
             if (!manuelCarControllerToggle)
             {
                 // Only update speed and rotation when manuelCarControllerToggle is false
-                // carData.targetSpeed = simpleCarController.CurrentSpeed;
                 carData.currentSpeed = speedometer.GetCurrentSpeed();
                 carData.rotation = simpleCarController.CurrentRotation;
             }
             else
             {
                 // If manuelCarControllerToggle is true, use the Speedometer's current speed
-                // carData.targetSpeed = manuelCarController.GetCurrentSpeed();
                 carData.currentSpeed = speedometer.GetCurrentSpeed();
                 carData.rotation = manuelCarController.GetCurrentRotation();
             }
@@ -302,12 +308,16 @@ public class ConnectionHelperCar : MonoBehaviour
             // Send the stringified JSON to the server
             await websocket.SendText(jsonString);
         }
+
     }
-    private void RestartCar()
+
+    private void RestartScene()
     {
-        transform.position = Vector3.zero;
-        transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-        Time.timeScale = 1f;
+        Debug.Log("Restarting scene...");
+        Time.timeScale = 0;
+        Scene currentScene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(currentScene.name);
+        manuelCarControllerToggle = false;
     }
 
     private async void OnApplicationQuit()

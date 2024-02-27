@@ -3,6 +3,14 @@ const WebSocket = require("ws");
 // Create a WebSocket server
 const wss = new WebSocket.Server({ port: 5005 });
 
+// Flag to indicate whether a scene reset is requested
+let resetRequested = false;
+
+// setTimeout(() => {
+//     resetRequested = true;
+//     console.log("RESET REQUESTED: " + resetRequested);
+// }, 15000);
+
 // Function to generate a random number within a range
 function getRandomNumber(min, max) {
     return Math.random() * (max - min) + min;
@@ -10,9 +18,9 @@ function getRandomNumber(min, max) {
 
 // Function to send serialized fields data as JSON
 function sendSerializedFieldsData(ws) {
-    const speed = getRandomNumber(2, 6); // Replace 100 with your maximum speed value
-    const rotation = getRandomNumber(-20, 20); // Replace 360 with your maximum rotation value
-    const data = JSON.stringify({ speed, rotation });
+    const speed = getRandomNumber(2, 6);
+    const rotation = getRandomNumber(-20, 20);
+    const data = JSON.stringify({ speed, rotation, resetRequested });
     ws.send(data);
 }
 
