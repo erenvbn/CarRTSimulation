@@ -21,9 +21,13 @@ public class DistanceManagerData
 public class ConnectionHelperCar : MonoBehaviour
 {
     public Text connectionStatusText;
+    public bool manuelCarControllerToggle;
     public bool sendPictureStream;
     public bool sendDistanceData;
     public float dataSendFrequencyInSeconds = 0.3f;
+    public SimpleCarController simpleCarController;
+    public ManuelCarController manuelCarController;
+    public Speedometer speedometer;
 
     [Serializable]
     public class ServerMessage
@@ -40,7 +44,8 @@ public class ConnectionHelperCar : MonoBehaviour
         public long timeStamp;
         public string screenshotBase64;
         public DistanceManagerData distanceManagerData;
-        public float speed;
+        // public float targetSpeed;
+        public float currentSpeed;
         public float rotation;
     }
 
@@ -84,10 +89,37 @@ public class ConnectionHelperCar : MonoBehaviour
             Debug.LogError("MainCamera object not found in the scene.");
         }
 
+        speedometer = FindObjectOfType<Speedometer>();
+
+        manuelCarController = FindObjectOfType<ManuelCarController>();
+        manuelCarController.enabled = false;
+
+
+        if (manuelCarController == null)
+        {
+            Debug.LogError("ManuelCarController not found in the scene!");
+        }
+        else
+        {
+            Debug.Log("ManuelCarController found!");
+        }
+
+        simpleCarController = FindObjectOfType<SimpleCarController>();
+        if (simpleCarController == null)
+        {
+            Debug.LogError("SimpleCarController not found in the scene!");
+        }
+        else
+        {
+            Debug.Log("SimpleCarController found!");
+        }
+
         // Assign the existing distanceManager field by reaching DistanceManager in the car
         distanceManager = GetComponent<DistanceManager>();
+        manuelCarControllerToggle = false;
         sendPictureStream = false;
         sendDistanceData = true;
+        Debug.Log(manuelCarControllerToggle);
         StartWebSocket();
         await websocket.Connect();
     }
@@ -97,6 +129,28 @@ public class ConnectionHelperCar : MonoBehaviour
 #if !UNITY_WEBGL || UNITY_EDITOR
         websocket.DispatchMessageQueue();
 #endif
+    }
+
+    public void ToggleCarControllers(bool enableManuelController)
+    {
+        if (enableManuelController)
+        {
+            // Enable ManuelCarController and disable SimpleCarController
+            manuelCarControllerToggle = true;
+
+            manuelCarController.enabled = true;
+            simpleCarController.enabled = false;
+            Debug.Log("ManuelCarController enabled");
+        }
+        else
+        {
+            // Enable SimpleCarController and disable ManuelCarController
+            manuelCarControllerToggle = false;
+
+            manuelCarController.enabled = false;
+            simpleCarController.enabled = true;
+            Debug.Log("SimpleCarController enabled");
+        }
     }
 
     public async void StartWebSocket()
@@ -120,23 +174,29 @@ public class ConnectionHelperCar : MonoBehaviour
                 uiController.UpdateConnectionErrorMessage("Error! " + e);
             };
 
-            websocket.OnMessage += (bytes) =>
+            if (!manuelCarControllerToggle)
             {
-                var message = System.Text.Encoding.UTF8.GetString(bytes);
-                var serverData = JsonUtility.FromJson<ServerMessage>(message);
-
-                if (serverData != null)
+                websocket.OnMessage += (bytes) =>
                 {
-                    FindObjectOfType<SimpleCarController>().TargetSpeed = serverData.speed;
-                    FindObjectOfType<SimpleCarController>().TargetRotation = serverData.rotation;
-                }
 
-                // Format the JSON message with indentation for better readability
-                var formattedMessage = JsonUtility.ToJson(serverData, true);
+                    var message = System.Text.Encoding.UTF8.GetString(bytes);
+                    var serverData = JsonUtility.FromJson<ServerMessage>(message);
 
-                // Update the UI with the formatted message
-                uiController.UpdateIncomingMessage(formattedMessage);
-            };
+                    if (serverData != null)
+                    {
+                        simpleCarController.TargetSpeed = serverData.speed;
+                        simpleCarController.TargetRotation = serverData.rotation;
+                    }
+
+                    // Format the JSON message with indentation for better readability
+                    var formattedMessage = JsonUtility.ToJson(serverData, true);
+
+                    // Update the UI with the formatted message
+                    uiController.UpdateIncomingMessage(formattedMessage);
+
+                };
+            }
+
 
             // Connect to the WebSocket server
             await websocket.Connect();
@@ -190,7 +250,6 @@ public class ConnectionHelperCar : MonoBehaviour
         while (true)
         {
             SendWebSocketMessage();
-            Debug.Log(dataSendFrequencyInSeconds);
             yield return new WaitForSeconds(dataSendFrequencyInSeconds);
         }
     }
@@ -205,9 +264,20 @@ public class ConnectionHelperCar : MonoBehaviour
             // Set crash status
             carData.isCrashed = GetComponent<CrashController>().Crashed;
 
-            carData.speed = FindObjectOfType<SimpleCarController>().CurrentSpeed;
-            carData.rotation = FindObjectOfType<SimpleCarController>().CurrentRotation;
-
+            if (!manuelCarControllerToggle)
+            {
+                // Only update speed and rotation when manuelCarControllerToggle is false
+                // carData.targetSpeed = simpleCarController.CurrentSpeed;
+                carData.currentSpeed = speedometer.GetCurrentSpeed();
+                carData.rotation = simpleCarController.CurrentRotation;
+            }
+            else
+            {
+                // If manuelCarControllerToggle is true, use the Speedometer's current speed
+                // carData.targetSpeed = manuelCarController.GetCurrentSpeed();
+                carData.currentSpeed = speedometer.GetCurrentSpeed();
+                carData.rotation = manuelCarController.GetCurrentRotation();
+            }
             // Unix timestamp in milliseconds
             carData.timeStamp = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
 
@@ -226,14 +296,13 @@ public class ConnectionHelperCar : MonoBehaviour
 
             var jsonString = JsonUtility.ToJson(carData, true);
 
-            Debug.Log("Sending message: " + jsonString);
+            // Debug.Log("Sending message: " + jsonString);
             uiController.UpdateOutgoingMessage(jsonString);
 
             // Send the stringified JSON to the server
             await websocket.SendText(jsonString);
         }
     }
-
     private void RestartCar()
     {
         transform.position = Vector3.zero;

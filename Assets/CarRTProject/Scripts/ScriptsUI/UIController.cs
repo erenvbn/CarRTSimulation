@@ -11,6 +11,7 @@ public class UIController : MonoBehaviour
 {
     //add from the editor, the gameobject with the connectionhelpercar component
     public ConnectionHelperCar connectionHelperCar;
+    public ManuelCarController manuelCarController;
     public TextMeshProUGUI txtCrash;
     public TextMeshProUGUI consoleIncomingText;
     public TextMeshProUGUI consoleOutgoingText;
@@ -22,6 +23,7 @@ public class UIController : MonoBehaviour
     public TMP_InputField dataSenderFrequencyInput;
     public UnityEngine.UI.Toggle togglePictureStream;
     public UnityEngine.UI.Toggle toggleDistanceDataStream;
+    public UnityEngine.UI.Toggle toggleManuelCarController;
     public GameObject loadingIcon;
 
     public void ShowLoadingIcon()
@@ -90,6 +92,7 @@ public class UIController : MonoBehaviour
         socketUrlInput.gameObject.SetActive(false);
         dataSenderFrequencyInput.gameObject.SetActive(false);
         togglePictureStream.gameObject.SetActive(false);
+        toggleManuelCarController.gameObject.SetActive(false);
         //getting the game object that is related with that component (toggleDistanceDataStream)
         toggleDistanceDataStream.gameObject.SetActive(false);
         connectionHelperCar.StartWebSocket();
@@ -100,6 +103,7 @@ public class UIController : MonoBehaviour
         Time.timeScale = 0;
         Scene currentScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(currentScene.name);
+        connectionHelperCar.manuelCarControllerToggle = false;
     }
 
     public void onStopButtonClick()
@@ -115,6 +119,7 @@ public class UIController : MonoBehaviour
         }
     }
 
+
     public void TogglePictureStream(bool toggle)
     {
         connectionHelperCar.sendPictureStream = toggle;
@@ -124,6 +129,12 @@ public class UIController : MonoBehaviour
     public void ToggleDistanceDataStream(bool toggle)
     {
         connectionHelperCar.sendDistanceData = toggle;
+        Debug.Log(toggle);
+    }
+
+    public void ToggleManuelCarController(bool toggle)
+    {
+        connectionHelperCar.ToggleCarControllers(toggle);
         Debug.Log(toggle);
     }
 
@@ -154,5 +165,6 @@ public class UIController : MonoBehaviour
         txtConnectionError.gameObject.SetActive(true);
         txtConnectionError.text = message;
     }
+
 
 }

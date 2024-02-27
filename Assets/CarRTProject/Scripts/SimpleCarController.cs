@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class SimpleCarController : MonoBehaviour
 {
-    [SerializeField] private float initialSpeed = 0f; // Initial speed of the car
+    [SerializeField] private float initialSpeed = 0f; // Initial speed of the car in km/h
     [SerializeField] private float initialRotation = 0f; // Initial rotation of the car
 
     // Auto-implemented properties for target speed and rotation
